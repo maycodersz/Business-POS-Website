@@ -39,7 +39,94 @@ export type PurchaseBatchRow = {
     id: string;
     name: string;
   } | null;
+  expenses: Array<{
+    id: string;
+    expense_date: string;
+    category: string;
+    amount: number;
+    related_purchase_batch_id: string | null;
+    created_at: string;
+  }>;
 };
+
+type PurchaseBatchWithoutExpenses = Omit<PurchaseBatchRow, "expenses">;
+
+function isMissingPurchaseExpenseLinkError(error: {
+  code?: string;
+  message?: string;
+}) {
+  return (
+    error.code === "PGRST200" ||
+    error.code === "PGRST204" ||
+    error.message?.includes("relationship") === true ||
+    error.message?.includes("related_purchase_batch_id") === true ||
+    error.message?.includes("schema cache") === true
+  );
+}
+
+async function attachPurchaseExpenses({
+  purchases,
+  supabase,
+  userId,
+}: {
+  purchases: PurchaseBatchWithoutExpenses[];
+  supabase: Awaited<ReturnType<typeof getRequiredUser>>["supabase"];
+  userId: string;
+}): Promise<PurchaseBatchRow[]> {
+  const purchaseIds = purchases.map((purchase) => purchase.id);
+
+  if (purchaseIds.length === 0) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("expenses")
+    .select(
+      `
+        id,
+        expense_date,
+        category,
+        amount,
+        related_purchase_batch_id,
+        created_at
+      `,
+    )
+    .eq("owner_id", userId)
+    .in("related_purchase_batch_id", purchaseIds)
+    .order("expense_date", { ascending: false })
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    if (isMissingPurchaseExpenseLinkError(error)) {
+      return purchases.map((purchase) => ({
+        ...purchase,
+        expenses: [],
+      }));
+    }
+
+    throw new Error(error.message);
+  }
+
+  const expensesByPurchaseId = new Map<
+    string,
+    PurchaseBatchRow["expenses"]
+  >();
+
+  for (const expense of data as PurchaseBatchRow["expenses"]) {
+    if (!expense.related_purchase_batch_id) {
+      continue;
+    }
+
+    const current = expensesByPurchaseId.get(expense.related_purchase_batch_id) ?? [];
+    current.push(expense);
+    expensesByPurchaseId.set(expense.related_purchase_batch_id, current);
+  }
+
+  return purchases.map((purchase) => ({
+    ...purchase,
+    expenses: expensesByPurchaseId.get(purchase.id) ?? [],
+  }));
+}
 
 export async function getPurchaseFormOptions() {
   const { supabase, user } = await getRequiredUser();
@@ -103,7 +190,11 @@ export async function getPurchases() {
     throw new Error(error.message);
   }
 
-  return data as PurchaseBatchRow[];
+  return attachPurchaseExpenses({
+    purchases: data as PurchaseBatchWithoutExpenses[],
+    supabase,
+    userId: user.id,
+  });
 }
 
 export async function getInventoryBatches() {
@@ -137,5 +228,9 @@ export async function getInventoryBatches() {
     throw new Error(error.message);
   }
 
-  return data as PurchaseBatchRow[];
+  return attachPurchaseExpenses({
+    purchases: data as PurchaseBatchWithoutExpenses[],
+    supabase,
+    userId: user.id,
+  });
 }

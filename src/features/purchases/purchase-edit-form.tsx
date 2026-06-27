@@ -9,6 +9,7 @@ import {
   type PurchaseActionState,
 } from "@/features/purchases/actions";
 import type { PurchaseBatchRow } from "@/features/purchases/queries";
+import { LinkedPurchaseExpensesInput } from "@/features/purchases/linked-purchase-expenses-input";
 import { ActionFeedback } from "@/components/ui/action-feedback";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Input } from "@/components/ui/input";
@@ -65,38 +66,11 @@ export function PurchaseEditForm({ purchase }: PurchaseEditFormProps) {
               Unit price
             </label>
             <Input
-              defaultValue={purchase.unit_price}
+              defaultValue={Math.round(purchase.unit_price)}
               min={0}
               name="unit_price"
               required
-              step="0.01"
-              type="number"
-            />
-          </div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-2">
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">
-              Shipping fee
-            </label>
-            <Input
-              defaultValue={purchase.shipping_fee}
-              min={0}
-              name="shipping_fee"
-              step="0.01"
-              type="number"
-            />
-          </div>
-          <div>
-            <label className="mb-2 block text-sm font-medium text-slate-700">
-              Other fee
-            </label>
-            <Input
-              defaultValue={purchase.other_fee}
-              min={0}
-              name="other_fee"
-              step="0.01"
+              step={1}
               type="number"
             />
           </div>
@@ -124,6 +98,14 @@ export function PurchaseEditForm({ purchase }: PurchaseEditFormProps) {
             placeholder="Optional purchase notes"
           />
         </div>
+
+        <LinkedPurchaseExpensesInput
+          initialExpenses={purchase.expenses.map((expense) => ({
+            amount: String(Math.round(expense.amount)),
+            category: expense.category,
+            key: expense.id,
+          }))}
+        />
 
         <ActionFeedback ok={updateState.ok} message={updateState.message} />
         <SubmitButton>

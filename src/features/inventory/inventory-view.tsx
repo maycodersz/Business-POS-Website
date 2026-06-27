@@ -6,18 +6,12 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { InventoryAdjustmentForm } from "@/features/inventory/inventory-adjustment-form";
 import type { InventoryMovementRow } from "@/features/inventory/queries";
 import type { PurchaseBatchRow } from "@/features/purchases/queries";
+import { formatMoney } from "@/lib/formatters/money";
 
 type InventoryViewProps = {
   batches: PurchaseBatchRow[];
   movements: InventoryMovementRow[];
 };
-
-function formatMoney(value: number | null) {
-  return new Intl.NumberFormat("en-PH", {
-    currency: "PHP",
-    style: "currency",
-  }).format(value ?? 0);
-}
 
 function movementLabel(type: string) {
   return type

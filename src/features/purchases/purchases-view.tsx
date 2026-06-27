@@ -4,17 +4,11 @@ import { ActionDisclosure } from "@/components/ui/action-disclosure";
 import { EmptyState } from "@/components/ui/empty-state";
 import { PurchaseEditForm } from "@/features/purchases/purchase-edit-form";
 import type { PurchaseBatchRow } from "@/features/purchases/queries";
+import { formatMoney } from "@/lib/formatters/money";
 
 type PurchasesViewProps = {
   purchases: PurchaseBatchRow[];
 };
-
-function formatMoney(value: number | null) {
-  return new Intl.NumberFormat("en-PH", {
-    currency: "PHP",
-    style: "currency",
-  }).format(value ?? 0);
-}
 
 export function PurchasesView({ purchases }: PurchasesViewProps) {
   return (
@@ -95,6 +89,24 @@ export function PurchasesView({ purchases }: PurchasesViewProps) {
                       </dd>
                     </div>
                   </dl>
+
+                  {purchase.expenses.length > 0 ? (
+                    <div className="mt-4 rounded-md bg-slate-50 p-3 text-sm">
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="font-medium text-slate-700">
+                          Linked expenses
+                        </span>
+                        <span className="font-semibold text-slate-950">
+                          {formatMoney(
+                            purchase.expenses.reduce(
+                              (total, expense) => total + expense.amount,
+                              0,
+                            ),
+                          )}
+                        </span>
+                      </div>
+                    </div>
+                  ) : null}
 
                   <div className="mt-4 flex flex-wrap gap-2">
                     <ActionDisclosure label="Edit purchase">

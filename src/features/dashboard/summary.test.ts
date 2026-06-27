@@ -92,6 +92,15 @@ describe("normalizeDashboardRange", () => {
   it("normalizes unsupported ranges back to 30 days", () => {
     expect(normalizeDashboardRange("bad", "2026-06-27").key).toBe("30d");
   });
+
+  it("supports a one-day dashboard and report range", () => {
+    expect(normalizeDashboardRange("1d", "2026-06-27")).toEqual({
+      key: "1d",
+      label: "Today",
+      startDate: "2026-06-27",
+      endDate: "2026-06-27",
+    });
+  });
 });
 
 describe("buildDailyDashboardSeries", () => {
@@ -140,12 +149,14 @@ describe("summarizeExpenseCategories", () => {
         { category: "shipping", amount: 100 },
         { category: "shipping", amount: 25 },
         { category: "labour", amount: 40 },
+        { category: "others", amount: 15 },
       ]),
     ).toEqual([
       { category: "shipping", amount: 125 },
       { category: "packaging", amount: 0 },
       { category: "refund", amount: 0 },
       { category: "labour", amount: 40 },
+      { category: "others", amount: 15 },
     ]);
   });
 });

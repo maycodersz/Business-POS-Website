@@ -16,19 +16,12 @@ import type {
   DashboardSeriesPoint,
   ExpenseCategoryPoint,
 } from "@/features/dashboard/summary";
+import { formatMoney } from "@/lib/formatters/money";
 
 type DashboardChartsProps = {
   dailySeries: DashboardSeriesPoint[];
   expenseCategories: ExpenseCategoryPoint[];
 };
-
-function formatMoney(value: number) {
-  return new Intl.NumberFormat("en-PH", {
-    currency: "PHP",
-    maximumFractionDigits: 0,
-    style: "currency",
-  }).format(value);
-}
 
 function formatCategory(category: string) {
   return category.charAt(0).toUpperCase() + category.slice(1);

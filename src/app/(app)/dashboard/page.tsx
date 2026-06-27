@@ -21,6 +21,7 @@ import { DashboardCharts } from "@/features/dashboard/dashboard-charts";
 import { DashboardMobileOverview } from "@/features/dashboard/dashboard-mobile-overview";
 import { getDashboardData } from "@/features/dashboard/queries";
 import type { DashboardRangeKey } from "@/features/dashboard/summary";
+import { formatMoney } from "@/lib/formatters/money";
 
 type DashboardPageProps = {
   searchParams: Promise<{
@@ -30,18 +31,12 @@ type DashboardPageProps = {
 };
 
 const ranges: Array<{ key: DashboardRangeKey; label: string }> = [
+  { key: "1d", label: "1D" },
   { key: "7d", label: "7D" },
   { key: "30d", label: "30D" },
   { key: "90d", label: "90D" },
   { key: "all", label: "All" },
 ];
-
-function formatMoney(value: number) {
-  return new Intl.NumberFormat("en-PH", {
-    currency: "PHP",
-    style: "currency",
-  }).format(value);
-}
 
 function itemName(
   item:

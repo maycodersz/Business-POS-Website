@@ -5,6 +5,7 @@ import {
   calculateGrossProfit,
   calculateSaleRevenue,
 } from "@/lib/calculations/inventory";
+import { expenseCategories } from "@/features/expenses/validation";
 
 type SaleBatchInput = {
   id: string;
@@ -23,6 +24,30 @@ const optionalTextSchema = z
   .trim()
   .transform((value) => (value.length === 0 ? null : value));
 
+const optionalExpenseCategorySchema = z
+  .string()
+  .trim()
+  .transform((value) => (value.length === 0 ? null : value))
+  .pipe(z.enum(expenseCategories).nullable());
+
+const optionalExpenseAmountSchema = z
+  .string()
+  .trim()
+  .transform((value) => (value.length === 0 ? null : value))
+  .transform((value) => (value === null ? null : Number(value)))
+  .refine(
+    (value) => value === null || Number.isFinite(value),
+    "Enter a valid expense amount.",
+  )
+  .refine(
+    (value) => value === null || Number.isInteger(value),
+    "Expense amount must be a whole number.",
+  )
+  .refine(
+    (value) => value === null || value > 0,
+    "Expense amount must be greater than 0.",
+  );
+
 export const saleFormSchema = z.object({
   purchase_batch_id: z.uuid("Batch is required."),
   quantity_sold: z.coerce
@@ -32,12 +57,23 @@ export const saleFormSchema = z.object({
   selling_price: z.coerce
     .number({ error: "Selling price is required." })
     .finite("Enter a valid selling price.")
+    .int("Selling price must be a whole number.")
     .refine((value) => value >= 0, "Selling price cannot be negative."),
   sale_date: z.iso.date("Sale date is required."),
   customer_name: optionalTextSchema,
   platform: optionalTextSchema,
   notes: optionalTextSchema,
-});
+  sale_expense_category: optionalExpenseCategorySchema,
+  sale_expense_amount: optionalExpenseAmountSchema,
+}).refine(
+  (data) =>
+    (data.sale_expense_category === null && data.sale_expense_amount === null) ||
+    (data.sale_expense_category !== null && data.sale_expense_amount !== null),
+  {
+    message: "Choose an expense category and enter an amount, or leave both blank.",
+    path: ["sale_expense_amount"],
+  },
+);
 
 export const saleUpdateFormSchema = z.object({
   sale_id: z.uuid("Sale is required."),
@@ -48,6 +84,7 @@ export const saleUpdateFormSchema = z.object({
   selling_price: z.coerce
     .number({ error: "Selling price is required." })
     .finite("Enter a valid selling price.")
+    .int("Selling price must be a whole number.")
     .refine((value) => value >= 0, "Selling price cannot be negative."),
   sale_date: z.iso.date("Sale date is required."),
   customer_name: optionalTextSchema,
@@ -105,6 +142,8 @@ export function normalizeSaleForm(
     customer_name: getRequiredString(formData, "customer_name"),
     platform: getRequiredString(formData, "platform"),
     notes: getRequiredString(formData, "notes"),
+    sale_expense_category: getRequiredString(formData, "sale_expense_category"),
+    sale_expense_amount: getRequiredString(formData, "sale_expense_amount"),
   });
 
   if (!parsed.success) {

@@ -59,7 +59,7 @@ export function rowsToCsv(rows: CsvRow[]) {
   ].join("\r\n");
 }
 
-function reportRows(type: ReportExportType, reports: ReportsData): CsvRow[] {
+export function reportRows(type: ReportExportType, reports: ReportsData): CsvRow[] {
   if (type === "profit-loss") {
     return [
       {
@@ -111,6 +111,7 @@ function reportRows(type: ReportExportType, reports: ReportsData): CsvRow[] {
       category: expense.category,
       amount: expense.amount,
       related_sale_id: expense.related_sale_id,
+      related_purchase_batch_id: expense.related_purchase_batch_id,
     }));
   }
 
@@ -157,6 +158,10 @@ export function isReportExportType(value: string): value is ReportExportType {
   return reportExportTypes.includes(value as ReportExportType);
 }
 
-export function reportExportFilename(type: ReportExportType, rangeKey: string) {
-  return `resellops-${type}-${rangeKey}.csv`;
+export function reportExportFilename(
+  type: ReportExportType,
+  rangeKey: string,
+  extension = "csv",
+) {
+  return `resellops-${type}-${rangeKey}.${extension}`;
 }

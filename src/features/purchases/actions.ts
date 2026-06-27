@@ -14,6 +14,98 @@ export type PurchaseActionState = {
   message?: string;
 };
 
+type SupabaseErrorLike = {
+  code?: string;
+  message?: string;
+};
+
+function isMissingPurchaseExpenseLinkError(error: SupabaseErrorLike) {
+  return (
+    error.code === "PGRST200" ||
+    error.code === "PGRST204" ||
+    error.code === "42703" ||
+    error.message?.includes("relationship") === true ||
+    error.message?.includes("related_purchase_batch_id") === true ||
+    error.message?.includes("Could not find") === true ||
+    error.message?.includes("schema cache") === true
+  );
+}
+
+async function replaceLinkedPurchaseExpenses({
+  expenseDate,
+  expenses,
+  purchaseBatchId,
+  supabase,
+  userId,
+}: {
+  expenseDate: string;
+  expenses: Array<{ amount: number; category: string }>;
+  purchaseBatchId: string;
+  supabase: Awaited<ReturnType<typeof getRequiredUser>>["supabase"];
+  userId: string;
+}) {
+  const { error: deleteExpenseError } = await supabase
+    .from("expenses")
+    .delete()
+    .eq("owner_id", userId)
+    .eq("related_purchase_batch_id", purchaseBatchId);
+
+  if (deleteExpenseError) {
+    if (
+      expenses.length === 0 &&
+      isMissingPurchaseExpenseLinkError(deleteExpenseError)
+    ) {
+      return null;
+    }
+
+    return deleteExpenseError;
+  }
+
+  if (expenses.length === 0) {
+    return null;
+  }
+
+  const { error: insertExpenseError } = await supabase.from("expenses").insert(
+    expenses.map((expense) => ({
+      owner_id: userId,
+      expense_date: expenseDate,
+      category: expense.category,
+      amount: expense.amount,
+      related_sale_id: null,
+      related_purchase_batch_id: purchaseBatchId,
+    })),
+  );
+
+  return insertExpenseError;
+}
+
+function linkedExpenseErrorMessage(error: SupabaseErrorLike) {
+  if (isMissingPurchaseExpenseLinkError(error)) {
+    return "Purchase expenses need a database update before they can be linked. Run the latest purchase expense migration in Supabase, refresh, and try again.";
+  }
+
+  return friendlySupabaseError(
+    error,
+    "Linked purchase expenses could not be saved.",
+  );
+}
+
+async function checkLinkedPurchaseExpenseSchema({
+  supabase,
+  userId,
+}: {
+  supabase: Awaited<ReturnType<typeof getRequiredUser>>["supabase"];
+  userId: string;
+}) {
+  const { error } = await supabase
+    .from("expenses")
+    .select("related_purchase_batch_id")
+    .eq("owner_id", userId)
+    .limit(1);
+
+  return error;
+}
+
 export async function createPurchaseAction(
   _previousState: PurchaseActionState,
   formData: FormData,
@@ -25,6 +117,18 @@ export async function createPurchaseAction(
   }
 
   const { supabase, user } = await getRequiredUser();
+
+  if (parsed.data.linked_expenses.length > 0) {
+    const linkedExpenseSchemaError = await checkLinkedPurchaseExpenseSchema({
+      supabase,
+      userId: user.id,
+    });
+
+    if (linkedExpenseSchemaError) {
+      return { message: linkedExpenseErrorMessage(linkedExpenseSchemaError) };
+    }
+  }
+
   let productId = parsed.data.product_id;
   let supplierId = parsed.data.supplier_id;
   let variantId = parsed.data.variant_id;
@@ -198,11 +302,42 @@ export async function createPurchaseAction(
     };
   }
 
+  const linkedExpenseError = await replaceLinkedPurchaseExpenses({
+    expenseDate: parsed.data.purchase_date,
+    expenses: parsed.data.linked_expenses,
+    purchaseBatchId: batch.id,
+    supabase,
+    userId: user.id,
+  });
+
+  if (linkedExpenseError) {
+    return { message: linkedExpenseErrorMessage(linkedExpenseError) };
+  }
+
   revalidatePath("/purchases");
   revalidatePath("/inventory");
   revalidatePath("/dashboard");
+  revalidatePath("/reports");
+  revalidatePath("/expenses");
 
-  return { ok: true, message: "Purchase saved and inventory updated." };
+  return {
+    ok: true,
+    message:
+      parsed.data.linked_expenses.length > 0
+        ? "Purchase saved, inventory updated, and expenses linked."
+        : "Purchase saved and inventory updated.",
+  };
+}
+
+function linkedExpenseUpdateErrorMessage(error: SupabaseErrorLike) {
+  if (isMissingPurchaseExpenseLinkError(error)) {
+    return "Purchase expenses need a database update before they can be linked. Run the latest purchase expense migration in Supabase, refresh, and try again.";
+  }
+
+  return friendlySupabaseError(
+    error,
+    "Linked purchase expenses could not be updated.",
+  );
 }
 
 export async function updatePurchaseAction(
@@ -216,6 +351,20 @@ export async function updatePurchaseAction(
   }
 
   const { supabase, user } = await getRequiredUser();
+
+  if (parsed.data.linked_expenses.length > 0) {
+    const linkedExpenseSchemaError = await checkLinkedPurchaseExpenseSchema({
+      supabase,
+      userId: user.id,
+    });
+
+    if (linkedExpenseSchemaError) {
+      return {
+        message: linkedExpenseUpdateErrorMessage(linkedExpenseSchemaError),
+      };
+    }
+  }
+
   const { data: batch, error: batchError } = await supabase
     .from("purchase_batches")
     .select("id, quantity, quantity_available, product_id, variant_id")
@@ -284,12 +433,31 @@ export async function updatePurchaseAction(
     }
   }
 
+  const linkedExpenseError = await replaceLinkedPurchaseExpenses({
+    expenseDate: parsed.data.purchase_date,
+    expenses: parsed.data.linked_expenses,
+    purchaseBatchId: batch.id,
+    supabase,
+    userId: user.id,
+  });
+
+  if (linkedExpenseError) {
+    return { message: linkedExpenseUpdateErrorMessage(linkedExpenseError) };
+  }
+
   revalidatePath("/purchases");
   revalidatePath("/inventory");
   revalidatePath("/dashboard");
   revalidatePath("/reports");
+  revalidatePath("/expenses");
 
-  return { ok: true, message: "Purchase updated." };
+  return {
+    ok: true,
+    message:
+      parsed.data.linked_expenses.length > 0
+        ? "Purchase updated and expenses linked."
+        : "Purchase updated.",
+  };
 }
 
 export async function deletePurchaseAction(
@@ -340,6 +508,7 @@ export async function deletePurchaseAction(
   revalidatePath("/inventory");
   revalidatePath("/dashboard");
   revalidatePath("/reports");
+  revalidatePath("/expenses");
 
   return { ok: true, message: "Purchase deleted." };
 }

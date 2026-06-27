@@ -14,6 +14,7 @@ import {
   calculateGrossProfit,
   calculateSaleRevenue,
 } from "@/lib/calculations/inventory";
+import { formatMoney } from "@/lib/formatters/money";
 import { ActionFeedback } from "@/components/ui/action-feedback";
 import { ConfirmSubmitButton } from "@/components/ui/confirm-submit-button";
 import { Input } from "@/components/ui/input";
@@ -26,13 +27,6 @@ type SaleEditFormProps = {
 
 const initialState: SaleActionState = {};
 
-function formatMoney(value: number) {
-  return new Intl.NumberFormat("en-PH", {
-    currency: "PHP",
-    style: "currency",
-  }).format(value);
-}
-
 export function SaleEditForm({ sale }: SaleEditFormProps) {
   const item = sale.sale_items[0] ?? null;
   const [updateState, updateFormAction] = useActionState(
@@ -44,7 +38,9 @@ export function SaleEditForm({ sale }: SaleEditFormProps) {
     initialState,
   );
   const [quantitySold, setQuantitySold] = useState(item?.quantity_sold ?? 1);
-  const [sellingPrice, setSellingPrice] = useState(item?.selling_price ?? 0);
+  const [sellingPrice, setSellingPrice] = useState(
+    item ? String(Math.round(item.selling_price)) : "",
+  );
 
   const maxQuantity =
     (item?.quantity_sold ?? 0) +
@@ -52,7 +48,7 @@ export function SaleEditForm({ sale }: SaleEditFormProps) {
 
   const preview = useMemo(() => {
     const unitCogs = item?.unit_cogs ?? 0;
-    const revenue = calculateSaleRevenue(quantitySold, sellingPrice);
+    const revenue = calculateSaleRevenue(quantitySold, Number(sellingPrice || 0));
     const cogs = calculateCOGS(quantitySold, unitCogs);
 
     return {
@@ -99,10 +95,10 @@ export function SaleEditForm({ sale }: SaleEditFormProps) {
               min={0}
               name="selling_price"
               required
-              step="0.01"
+              step={1}
               type="number"
               value={sellingPrice}
-              onChange={(event) => setSellingPrice(Number(event.target.value))}
+              onChange={(event) => setSellingPrice(event.target.value)}
             />
           </div>
         </div>

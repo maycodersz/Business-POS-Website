@@ -18,6 +18,7 @@ import { AddModal } from "@/features/add-modal/add-modal";
 import type { ReportExportType } from "@/features/reports/csv";
 import { getReportsData } from "@/features/reports/queries";
 import type { DashboardRangeKey } from "@/features/dashboard/summary";
+import { formatMoney } from "@/lib/formatters/money";
 
 type ReportsPageProps = {
   searchParams: Promise<{
@@ -27,18 +28,12 @@ type ReportsPageProps = {
 };
 
 const ranges: Array<{ key: DashboardRangeKey; label: string }> = [
+  { key: "1d", label: "1D" },
   { key: "7d", label: "7D" },
   { key: "30d", label: "30D" },
   { key: "90d", label: "90D" },
   { key: "all", label: "All" },
 ];
-
-function formatMoney(value: number | null) {
-  return new Intl.NumberFormat("en-PH", {
-    currency: "PHP",
-    style: "currency",
-  }).format(value ?? 0);
-}
 
 function productLabel(value: {
   products?: { name: string } | null;
@@ -51,6 +46,27 @@ function productLabel(value: {
 
 function categoryLabel(category: string) {
   return category.charAt(0).toUpperCase() + category.slice(1);
+}
+
+function purchaseExpenseLabel(expense: {
+  purchase_batches?: {
+    purchase_date: string;
+    products?: { name: string } | null;
+    product_variants?: { variant_name: string } | null;
+    suppliers?: { name: string } | null;
+  } | null;
+}) {
+  const purchase = expense.purchase_batches;
+
+  if (!purchase) {
+    return "Related purchase";
+  }
+
+  return `${purchase.purchase_date} - ${
+    purchase.products?.name ?? "Unknown product"
+  } - ${purchase.product_variants?.variant_name ?? "No variant"} by ${
+    purchase.suppliers?.name ?? "Unknown supplier"
+  }`;
 }
 
 function ReportPanel({
@@ -66,7 +82,8 @@ function ReportPanel({
   rangeKey: DashboardRangeKey;
   title: string;
 }) {
-  const exportHref = `/reports/export?type=${exportType}&range=${rangeKey}`;
+  const csvExportHref = `/reports/export?type=${exportType}&range=${rangeKey}`;
+  const pdfExportHref = `/reports/export?type=${exportType}&range=${rangeKey}&format=pdf`;
 
   return (
     <section className="rounded-lg border border-slate-200 bg-white shadow-sm">
@@ -75,14 +92,24 @@ function ReportPanel({
           <Icon className="h-5 w-5 text-slate-500" aria-hidden="true" />
           <h2 className="text-base font-semibold text-slate-950">{title}</h2>
         </div>
-        <Link
-          className={actionLinkClassName}
-          href={exportHref}
-          prefetch={false}
-        >
-          <Download className="h-4 w-4" aria-hidden="true" />
-          Export CSV
-        </Link>
+        <div className="flex flex-col gap-2 sm:flex-row">
+          <Link
+            className={actionLinkClassName}
+            href={csvExportHref}
+            prefetch={false}
+          >
+            <Download className="h-4 w-4" aria-hidden="true" />
+            Export CSV
+          </Link>
+          <Link
+            className={actionLinkClassName}
+            href={pdfExportHref}
+            prefetch={false}
+          >
+            <Download className="h-4 w-4" aria-hidden="true" />
+            Export PDF
+          </Link>
+        </div>
       </div>
       <div className="p-5">{children}</div>
     </section>
@@ -400,8 +427,10 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                       >
                         View related sale
                       </Link>
+                    ) : expense.related_purchase_batch_id ? (
+                      purchaseExpenseLabel(expense)
                     ) : (
-                      "No related sale"
+                      "No related sale or purchase"
                     )}
                   </div>
                 </div>
@@ -414,7 +443,7 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                   <th className="whitespace-nowrap px-3 py-2 font-medium">Date</th>
                   <th className="whitespace-nowrap px-3 py-2 font-medium">Category</th>
                   <th className="whitespace-nowrap px-3 py-2 font-medium">Amount</th>
-                  <th className="whitespace-nowrap px-3 py-2 font-medium">Related sale</th>
+                  <th className="whitespace-nowrap px-3 py-2 font-medium">Related record</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-200">
@@ -437,6 +466,8 @@ export default async function ReportsPage({ searchParams }: ReportsPageProps) {
                         >
                           View sale
                         </Link>
+                      ) : expense.related_purchase_batch_id ? (
+                        purchaseExpenseLabel(expense)
                       ) : (
                         "-"
                       )}

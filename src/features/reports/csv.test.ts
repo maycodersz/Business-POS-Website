@@ -28,4 +28,10 @@ describe("reportExportFilename", () => {
       "resellops-sales-30d.csv",
     );
   });
+
+  it("builds stable PDF filenames", () => {
+    expect(reportExportFilename("sales", "30d", "pdf")).toBe(
+      "resellops-sales-30d.pdf",
+    );
+  });
 });

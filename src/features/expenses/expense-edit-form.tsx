@@ -91,11 +91,11 @@ export function ExpenseEditForm({ expense, sales }: ExpenseEditFormProps) {
             Amount
           </label>
           <Input
-            defaultValue={expense.amount}
-            min={0}
+            defaultValue={Math.round(expense.amount)}
+            min={1}
             name="amount"
             required
-            step="0.01"
+            step={1}
             type="number"
           />
         </div>

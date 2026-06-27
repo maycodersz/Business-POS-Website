@@ -4,17 +4,11 @@ import { ArrowLeft } from "lucide-react";
 import { ActionDisclosure } from "@/components/ui/action-disclosure";
 import { SaleEditForm } from "@/features/sales/sale-edit-form";
 import type { SaleRow } from "@/features/sales/queries";
+import { formatMoney } from "@/lib/formatters/money";
 
 type SaleDetailViewProps = {
   sale: SaleRow;
 };
-
-function formatMoney(value: number | null) {
-  return new Intl.NumberFormat("en-PH", {
-    currency: "PHP",
-    style: "currency",
-  }).format(value ?? 0);
-}
 
 export function SaleDetailView({ sale }: SaleDetailViewProps) {
   const item = sale.sale_items[0] ?? null;

@@ -17,6 +17,7 @@ export type Database = {
           expense_date: string
           id: string
           owner_id: string
+          related_purchase_batch_id: string | null
           related_sale_id: string | null
           updated_at: string
         }
@@ -27,6 +28,7 @@ export type Database = {
           expense_date?: string
           id?: string
           owner_id: string
+          related_purchase_batch_id?: string | null
           related_sale_id?: string | null
           updated_at?: string
         }
@@ -37,10 +39,18 @@ export type Database = {
           expense_date?: string
           id?: string
           owner_id?: string
+          related_purchase_batch_id?: string | null
           related_sale_id?: string | null
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "expenses_related_purchase_batch_id_fkey"
+            columns: ["related_purchase_batch_id"]
+            isOneToOne: false
+            referencedRelation: "purchase_batches"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "expenses_related_sale_id_fkey"
             columns: ["related_sale_id"]
@@ -426,6 +436,8 @@ export type Database = {
       create_sale_from_batch: {
         Args: {
           p_customer_name?: string | null
+          p_expense_amount?: number | null
+          p_expense_category?: string | null
           p_notes?: string | null
           p_platform?: string | null
           p_purchase_batch_id: string

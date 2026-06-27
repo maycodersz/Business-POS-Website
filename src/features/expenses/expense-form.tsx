@@ -74,7 +74,7 @@ export function ExpenseForm({ sales }: ExpenseFormProps) {
         <label className="mb-2 block text-sm font-medium text-slate-700">
           Amount
         </label>
-        <Input min={0} name="amount" placeholder="0" required step="0.01" type="number" />
+        <Input min={1} name="amount" placeholder="0" required step={1} type="number" />
       </div>
 
       <div>

@@ -9,18 +9,12 @@ import type {
   ExpenseRow,
   ExpenseSaleOption,
 } from "@/features/expenses/queries";
+import { formatMoney } from "@/lib/formatters/money";
 
 type ExpensesViewProps = {
   expenses: ExpenseRow[];
   sales: ExpenseSaleOption[];
 };
-
-function formatMoney(value: number) {
-  return new Intl.NumberFormat("en-PH", {
-    currency: "PHP",
-    style: "currency",
-  }).format(value);
-}
 
 function categoryLabel(category: string) {
   return category.charAt(0).toUpperCase() + category.slice(1);
@@ -38,6 +32,32 @@ function saleSummary(sale: ExpenseSaleOption | null) {
   return `${sale.sale_date} - ${product} - ${variant}`;
 }
 
+function purchaseSummary(expense: ExpenseRow) {
+  const purchase = expense.purchase_batches;
+
+  if (!purchase) {
+    return "No related sale or purchase";
+  }
+
+  const product = purchase.products?.name ?? "Unknown product";
+  const variant = purchase.product_variants?.variant_name ?? "No variant";
+  const supplier = purchase.suppliers?.name ?? "Unknown supplier";
+
+  return `${purchase.purchase_date} - ${product} - ${variant} by ${supplier}`;
+}
+
+function relatedSummary(expense: ExpenseRow) {
+  if (expense.related_sale_id) {
+    return saleSummary(expense.sales);
+  }
+
+  if (expense.related_purchase_batch_id) {
+    return purchaseSummary(expense);
+  }
+
+  return "No related sale or purchase";
+}
+
 export function ExpensesView({
   expenses,
   sales,
@@ -49,7 +69,7 @@ export function ExpensesView({
           Expenses
         </h1>
         <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-          Track shipping, packaging, refund, and labour expenses. Link an
+          Track shipping, packaging, refund, labour, and other expenses. Link an
           expense to a sale when it should reduce that sale&apos;s net profit.
         </p>
       </div>
@@ -66,7 +86,7 @@ export function ExpensesView({
               <EmptyState
                 icon={CreditCard}
                 title="No expenses yet"
-                description="Add shipping, packaging, refund, or labour expenses to track net profit."
+                description="Add shipping, packaging, refund, labour, or other expenses to track net profit."
               />
             </div>
           ) : (
@@ -79,7 +99,7 @@ export function ExpensesView({
                         {categoryLabel(expense.category)}
                       </h3>
                       <p className="mt-1 text-sm text-slate-500">
-                        {saleSummary(expense.sales)}
+                        {relatedSummary(expense)}
                       </p>
                     </div>
                     <div className="text-sm text-slate-500">

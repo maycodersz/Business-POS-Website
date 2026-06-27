@@ -16,7 +16,7 @@ const baseRoutes = [
   "/reports",
 ];
 
-const rangeKeys = ["7d", "30d", "90d", "all"];
+const rangeKeys = ["1d", "7d", "30d", "90d", "all"];
 
 function withAdd(pathname: string, searchParams: string, kind: string) {
   const params = new URLSearchParams(searchParams);

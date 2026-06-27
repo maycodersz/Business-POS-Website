@@ -5,6 +5,12 @@ import {
   calculateTotalItemCost,
   calculateTotalPurchaseCost,
 } from "@/lib/calculations/inventory";
+import { expenseCategories } from "@/features/expenses/validation";
+
+export type LinkedPurchaseExpense = {
+  amount: number;
+  category: (typeof expenseCategories)[number];
+};
 
 const optionalUuidSchema = z
   .string()
@@ -28,6 +34,7 @@ const numericField = (message: string) =>
       error: "Enter a valid number.",
     })
     .finite("Enter a valid number.")
+    .int("Enter a whole number without decimals.")
     .refine((value) => value >= 0, message);
 
 export const purchaseFormSchema = z
@@ -62,6 +69,7 @@ export type PurchaseFormData = z.infer<typeof purchaseFormSchema> & {
   total_item_cost: number;
   total_purchase_cost: number;
   landed_unit_cost: number;
+  linked_expenses: LinkedPurchaseExpense[];
 };
 
 export const purchaseUpdateFormSchema = z.object({
@@ -82,6 +90,7 @@ export type PurchaseUpdateFormData = z.infer<typeof purchaseUpdateFormSchema> & 
   total_item_cost: number;
   total_purchase_cost: number;
   landed_unit_cost: number;
+  linked_expenses: LinkedPurchaseExpense[];
 };
 
 export type PurchaseFormResult =
@@ -113,7 +122,82 @@ function getOptionalNumberString(formData: FormData, field: string) {
   return value.trim().length === 0 ? "0" : value;
 }
 
+function normalizeLinkedPurchaseExpenses(formData: FormData) {
+  const categories = formData
+    .getAll("purchase_expense_category")
+    .map((value) => String(value).trim());
+  const amounts = formData
+    .getAll("purchase_expense_amount")
+    .map((value) => String(value).trim());
+  const rowCount = Math.max(categories.length, amounts.length);
+  const expenses: LinkedPurchaseExpense[] = [];
+
+  for (let index = 0; index < rowCount; index += 1) {
+    const category = categories[index] ?? "";
+    const amountValue = amounts[index] ?? "";
+
+    if (!category && !amountValue) {
+      continue;
+    }
+
+    if (!category || !amountValue) {
+      return {
+        success: false as const,
+        message: !category
+          ? "Select an expense category for the amount you entered."
+          : "Enter an expense amount or remove the row.",
+      };
+    }
+
+    if (!expenseCategories.includes(category as LinkedPurchaseExpense["category"])) {
+      return {
+        success: false as const,
+        message: "Select a valid expense category.",
+      };
+    }
+
+    const amount = Number(amountValue);
+
+    if (!Number.isFinite(amount)) {
+      return {
+        success: false as const,
+        message: "Enter a valid expense amount.",
+      };
+    }
+
+    if (!Number.isInteger(amount)) {
+      return {
+        success: false as const,
+        message: "Expense amount must be a whole number.",
+      };
+    }
+
+    if (amount <= 0) {
+      return {
+        success: false as const,
+        message: "Expense amount must be greater than 0.",
+      };
+    }
+
+    expenses.push({
+      amount,
+      category: category as LinkedPurchaseExpense["category"],
+    });
+  }
+
+  return {
+    success: true as const,
+    data: expenses,
+  };
+}
+
 export function normalizePurchaseForm(formData: FormData): PurchaseFormResult {
+  const linkedExpenses = normalizeLinkedPurchaseExpenses(formData);
+
+  if (!linkedExpenses.success) {
+    return { success: false, message: linkedExpenses.message };
+  }
+
   const parsed = purchaseFormSchema.safeParse({
     product_id: getRequiredString(formData, "product_id"),
     new_product_name: getRequiredString(formData, "new_product_name"),
@@ -160,6 +244,7 @@ export function normalizePurchaseForm(formData: FormData): PurchaseFormResult {
         parsed.data.shipping_fee,
         parsed.data.other_fee,
       ),
+      linked_expenses: linkedExpenses.data,
     },
   };
 }
@@ -167,6 +252,12 @@ export function normalizePurchaseForm(formData: FormData): PurchaseFormResult {
 export function normalizePurchaseUpdateForm(
   formData: FormData,
 ): PurchaseUpdateFormResult {
+  const linkedExpenses = normalizeLinkedPurchaseExpenses(formData);
+
+  if (!linkedExpenses.success) {
+    return { success: false, message: linkedExpenses.message };
+  }
+
   const parsed = purchaseUpdateFormSchema.safeParse({
     id: getRequiredString(formData, "id"),
     quantity: getRequiredString(formData, "quantity"),
@@ -208,6 +299,7 @@ export function normalizePurchaseUpdateForm(
         parsed.data.shipping_fee,
         parsed.data.other_fee,
       ),
+      linked_expenses: linkedExpenses.data,
     },
   };
 }

@@ -6,17 +6,11 @@ import { ActionDisclosure } from "@/components/ui/action-disclosure";
 import { EmptyState } from "@/components/ui/empty-state";
 import { SaleEditForm } from "@/features/sales/sale-edit-form";
 import type { SaleRow } from "@/features/sales/queries";
+import { formatMoney } from "@/lib/formatters/money";
 
 type SalesViewProps = {
   sales: SaleRow[];
 };
-
-function formatMoney(value: number | null) {
-  return new Intl.NumberFormat("en-PH", {
-    currency: "PHP",
-    style: "currency",
-  }).format(value ?? 0);
-}
 
 function firstItem(sale: SaleRow) {
   return sale.sale_items[0] ?? null;

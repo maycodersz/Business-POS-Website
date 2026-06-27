@@ -7,7 +7,7 @@ describe("normalizeExpenseForm", () => {
     const formData = new FormData();
     formData.set("expense_date", "2026-06-27");
     formData.set("category", "shipping");
-    formData.set("amount", "120.50");
+    formData.set("amount", "120");
     formData.set("related_sale_id", "11111111-1111-4111-8111-111111111111");
 
     const result = normalizeExpenseForm(formData);
@@ -19,7 +19,7 @@ describe("normalizeExpenseForm", () => {
     expect(result.data).toEqual({
       expense_date: "2026-06-27",
       category: "shipping",
-      amount: 120.5,
+      amount: 120,
       related_sale_id: "11111111-1111-4111-8111-111111111111",
     });
   });
@@ -38,6 +38,22 @@ describe("normalizeExpenseForm", () => {
       return;
     }
     expect(result.data.related_sale_id).toBeNull();
+  });
+
+  it("accepts other expenses", () => {
+    const formData = new FormData();
+    formData.set("expense_date", "2026-06-27");
+    formData.set("category", "others");
+    formData.set("amount", "99");
+    formData.set("related_sale_id", "");
+
+    const result = normalizeExpenseForm(formData);
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      return;
+    }
+    expect(result.data.category).toBe("others");
   });
 
   it("rejects unsupported expense categories", () => {
@@ -62,6 +78,21 @@ describe("normalizeExpenseForm", () => {
     const result = normalizeExpenseForm(formData);
 
     expect(result.success).toBe(false);
+  });
+
+  it("rejects decimal amounts", () => {
+    const formData = new FormData();
+    formData.set("expense_date", "2026-06-27");
+    formData.set("category", "shipping");
+    formData.set("amount", "120.50");
+    formData.set("related_sale_id", "");
+
+    const result = normalizeExpenseForm(formData);
+
+    expect(result).toEqual({
+      success: false,
+      message: "Amount must be a whole number.",
+    });
   });
 });
 

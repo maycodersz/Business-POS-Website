@@ -43,7 +43,7 @@ export type DashboardSummary = {
   deadStockCount: number;
 };
 
-export type DashboardRangeKey = "7d" | "30d" | "90d" | "all";
+export type DashboardRangeKey = "1d" | "7d" | "30d" | "90d" | "all";
 
 export type DashboardRange = {
   key: DashboardRangeKey;
@@ -77,13 +77,20 @@ const rangeOptions: Record<
   DashboardRangeKey,
   { days: number | null; label: string }
 > = {
+  "1d": { days: 1, label: "Today" },
   "7d": { days: 7, label: "Last 7 days" },
   "30d": { days: 30, label: "Last 30 days" },
   "90d": { days: 90, label: "Last 90 days" },
   all: { days: null, label: "All time" },
 };
 
-const expenseCategories = ["shipping", "packaging", "refund", "labour"];
+const expenseCategories = [
+  "shipping",
+  "packaging",
+  "refund",
+  "labour",
+  "others",
+];
 
 function sumNumbers(values: number[]) {
   return values.reduce((total, value) => total + value, 0);
@@ -109,7 +116,11 @@ function subtractDays(value: string, days: number) {
 
 function isDashboardRangeKey(value: unknown): value is DashboardRangeKey {
   return (
-    value === "7d" || value === "30d" || value === "90d" || value === "all"
+    value === "1d" ||
+    value === "7d" ||
+    value === "30d" ||
+    value === "90d" ||
+    value === "all"
   );
 }
 

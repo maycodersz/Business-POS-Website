@@ -5,6 +5,7 @@ export const expenseCategories = [
   "packaging",
   "refund",
   "labour",
+  "others",
 ] as const;
 
 const optionalSaleSchema = z
@@ -21,6 +22,7 @@ export const expenseFormSchema = z.object({
   amount: z.coerce
     .number({ error: "Amount is required." })
     .finite("Enter a valid amount.")
+    .int("Amount must be a whole number.")
     .positive("Amount must be greater than 0."),
   related_sale_id: optionalSaleSchema,
 });

@@ -14,8 +14,9 @@ import type {
 import {
   calculateLandedUnitCost,
   calculateTotalItemCost,
-  calculateTotalPurchaseCost,
 } from "@/lib/calculations/inventory";
+import { formatMoney } from "@/lib/formatters/money";
+import { LinkedPurchaseExpensesInput } from "@/features/purchases/linked-purchase-expenses-input";
 import { ActionFeedback } from "@/components/ui/action-feedback";
 import { Input } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -35,13 +36,6 @@ function todayInputValue() {
   return new Date().toISOString().slice(0, 10);
 }
 
-function formatMoney(value: number) {
-  return new Intl.NumberFormat("en-PH", {
-    currency: "PHP",
-    style: "currency",
-  }).format(value);
-}
-
 export function PurchaseForm({ products, suppliers }: PurchaseFormProps) {
   const [state, formAction] = useActionState(
     createPurchaseAction,
@@ -49,9 +43,7 @@ export function PurchaseForm({ products, suppliers }: PurchaseFormProps) {
   );
   const [selectedProductId, setSelectedProductId] = useState("");
   const [quantity, setQuantity] = useState(1);
-  const [unitPrice, setUnitPrice] = useState(0);
-  const [shippingFee, setShippingFee] = useState(0);
-  const [otherFee, setOtherFee] = useState(0);
+  const [unitPrice, setUnitPrice] = useState("");
 
   const selectedProduct = products.find(
     (product) => product.id === selectedProductId,
@@ -59,25 +51,17 @@ export function PurchaseForm({ products, suppliers }: PurchaseFormProps) {
   const variants = selectedProduct?.product_variants ?? [];
 
   const preview = useMemo(() => {
-    const totalItemCost = calculateTotalItemCost(quantity, unitPrice);
-    const totalPurchaseCost = calculateTotalPurchaseCost(
-      quantity,
-      unitPrice,
-      shippingFee,
-      otherFee,
-    );
+    const parsedUnitPrice = Number(unitPrice || 0);
+    const totalItemCost = calculateTotalItemCost(quantity, parsedUnitPrice);
 
     return {
       totalItemCost,
-      totalPurchaseCost,
       landedUnitCost: calculateLandedUnitCost(
         quantity,
-        unitPrice,
-        shippingFee,
-        otherFee,
+        parsedUnitPrice,
       ),
     };
-  }, [quantity, unitPrice, shippingFee, otherFee]);
+  }, [quantity, unitPrice]);
 
   return (
     <form action={formAction} className="space-y-5">
@@ -180,40 +164,12 @@ export function PurchaseForm({ products, suppliers }: PurchaseFormProps) {
           <Input
             min={0}
             name="unit_price"
+            placeholder="0"
             required
-            step="0.01"
+            step={1}
             type="number"
             value={unitPrice}
-            onChange={(event) => setUnitPrice(Number(event.target.value))}
-          />
-        </div>
-      </div>
-
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">
-            Shipping fee
-          </label>
-          <Input
-            min={0}
-            name="shipping_fee"
-            step="0.01"
-            type="number"
-            value={shippingFee}
-            onChange={(event) => setShippingFee(Number(event.target.value))}
-          />
-        </div>
-        <div>
-          <label className="mb-2 block text-sm font-medium text-slate-700">
-            Other fee
-          </label>
-          <Input
-            min={0}
-            name="other_fee"
-            step="0.01"
-            type="number"
-            value={otherFee}
-            onChange={(event) => setOtherFee(Number(event.target.value))}
+            onChange={(event) => setUnitPrice(event.target.value)}
           />
         </div>
       </div>
@@ -240,7 +196,9 @@ export function PurchaseForm({ products, suppliers }: PurchaseFormProps) {
         />
       </div>
 
-      <dl className="grid gap-3 rounded-md bg-slate-50 p-4 text-sm sm:grid-cols-3">
+      <LinkedPurchaseExpensesInput />
+
+      <dl className="grid gap-3 rounded-md bg-slate-50 p-4 text-sm sm:grid-cols-2">
         <div>
           <dt className="text-slate-500">Item cost</dt>
           <dd className="mt-1 font-semibold text-slate-950">
@@ -248,13 +206,7 @@ export function PurchaseForm({ products, suppliers }: PurchaseFormProps) {
           </dd>
         </div>
         <div>
-          <dt className="text-slate-500">Total cost</dt>
-          <dd className="mt-1 font-semibold text-slate-950">
-            {formatMoney(preview.totalPurchaseCost)}
-          </dd>
-        </div>
-        <div>
-          <dt className="text-slate-500">Landed unit</dt>
+          <dt className="text-slate-500">Inventory unit cost</dt>
           <dd className="mt-1 font-semibold text-slate-950">
             {formatMoney(preview.landedUnitCost)}
           </dd>

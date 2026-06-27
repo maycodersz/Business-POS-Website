@@ -40,8 +40,24 @@ export type ReportExpense = {
   category: string;
   amount: number;
   related_sale_id: string | null;
+  related_purchase_batch_id: string | null;
   created_at: string;
+  purchase_batches: {
+    id: string;
+    purchase_date: string;
+    products: {
+      name: string;
+    } | null;
+    product_variants: {
+      variant_name: string;
+    } | null;
+    suppliers: {
+      name: string;
+    } | null;
+  } | null;
 };
+
+type ReportExpenseWithoutPurchase = Omit<ReportExpense, "purchase_batches">;
 
 export type ReportPurchase = {
   id: string;
@@ -85,6 +101,19 @@ function applyDateRange<T extends DateRangeQuery<T>>(
   return startDate ? withEnd.gte(column, startDate) : withEnd;
 }
 
+function isMissingPurchaseExpenseLinkError(error: {
+  code?: string;
+  message?: string;
+}) {
+  return (
+    error.code === "PGRST200" ||
+    error.code === "PGRST204" ||
+    error.message?.includes("relationship") === true ||
+    error.message?.includes("related_purchase_batch_id") === true ||
+    error.message?.includes("schema cache") === true
+  );
+}
+
 function flattenSaleItems(sales: ReportSale[]) {
   return sales.flatMap((sale) =>
     sale.sale_items.map((item) => ({
@@ -113,6 +142,123 @@ export async function getReportsData(rangeKey?: DashboardRangeKey | string) {
   const range = normalizeDashboardRange(rangeKey, todayInputValue());
   const { supabase, user } = await getRequiredUser();
 
+  async function attachPurchaseSummaries(
+    expenses: ReportExpenseWithoutPurchase[],
+  ): Promise<ReportExpense[]> {
+    const purchaseIds = Array.from(
+      new Set(
+        expenses
+          .map((expense) => expense.related_purchase_batch_id)
+          .filter((id): id is string => Boolean(id)),
+      ),
+    );
+
+    if (purchaseIds.length === 0) {
+      return expenses.map((expense) => ({
+        ...expense,
+        purchase_batches: null,
+      }));
+    }
+
+    const { data, error } = await supabase
+      .from("purchase_batches")
+      .select(
+        `
+          id,
+          purchase_date,
+          products(name),
+          product_variants(variant_name),
+          suppliers(name)
+        `,
+      )
+      .eq("owner_id", user.id)
+      .in("id", purchaseIds);
+
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    const purchaseById = new Map(
+      data.map((purchase) => [purchase.id, purchase]),
+    );
+
+    return expenses.map((expense) => ({
+      ...expense,
+      purchase_batches: expense.related_purchase_batch_id
+        ? (purchaseById.get(expense.related_purchase_batch_id) ?? null)
+        : null,
+    })) as ReportExpense[];
+  }
+
+  async function fetchExpenses() {
+    const baseQuery = supabase
+      .from("expenses")
+      .select(
+        `
+          id,
+          expense_date,
+          category,
+          amount,
+          related_sale_id,
+          related_purchase_batch_id,
+          created_at
+        `,
+      )
+      .eq("owner_id", user.id)
+      .order("expense_date", { ascending: false })
+      .order("created_at", { ascending: false });
+    const result = await applyDateRange(
+      baseQuery,
+      "expense_date",
+      range.startDate,
+      range.endDate,
+    );
+
+    if (!result.error) {
+      return attachPurchaseSummaries(result.data as ReportExpenseWithoutPurchase[]);
+    }
+
+    if (!isMissingPurchaseExpenseLinkError(result.error)) {
+      throw new Error(result.error.message);
+    }
+
+    const fallbackBaseQuery = supabase
+      .from("expenses")
+      .select(
+        `
+          id,
+          expense_date,
+          category,
+          amount,
+          related_sale_id,
+          created_at
+        `,
+      )
+      .eq("owner_id", user.id)
+      .order("expense_date", { ascending: false })
+      .order("created_at", { ascending: false });
+    const fallback = await applyDateRange(
+      fallbackBaseQuery,
+      "expense_date",
+      range.startDate,
+      range.endDate,
+    );
+
+    if (fallback.error) {
+      throw new Error(fallback.error.message);
+    }
+
+    return (
+      fallback.data as Array<
+        Omit<ReportExpenseWithoutPurchase, "related_purchase_batch_id">
+      >
+    ).map((expense) => ({
+      ...expense,
+      related_purchase_batch_id: null,
+      purchase_batches: null,
+    }));
+  }
+
   const salesBaseQuery = supabase
     .from("sales")
     .select(
@@ -136,13 +282,6 @@ export async function getReportsData(rangeKey?: DashboardRangeKey | string) {
     )
     .eq("owner_id", user.id)
     .order("sale_date", { ascending: false })
-    .order("created_at", { ascending: false });
-
-  const expensesBaseQuery = supabase
-    .from("expenses")
-    .select("id, expense_date, category, amount, related_sale_id, created_at")
-    .eq("owner_id", user.id)
-    .order("expense_date", { ascending: false })
     .order("created_at", { ascending: false });
 
   const purchasesBaseQuery = supabase
@@ -178,12 +317,7 @@ export async function getReportsData(rangeKey?: DashboardRangeKey | string) {
       range.startDate,
       range.endDate,
     ),
-    applyDateRange(
-      expensesBaseQuery,
-      "expense_date",
-      range.startDate,
-      range.endDate,
-    ),
+    fetchExpenses(),
     applyDateRange(
       purchasesBaseQuery,
       "purchase_date",
@@ -216,10 +350,6 @@ export async function getReportsData(rangeKey?: DashboardRangeKey | string) {
     throw new Error(salesResult.error.message);
   }
 
-  if (expensesResult.error) {
-    throw new Error(expensesResult.error.message);
-  }
-
   if (purchasesResult.error) {
     throw new Error(purchasesResult.error.message);
   }
@@ -229,7 +359,7 @@ export async function getReportsData(rangeKey?: DashboardRangeKey | string) {
   }
 
   const sales = salesResult.data as ReportSale[];
-  const expenses = expensesResult.data as ReportExpense[];
+  const expenses = expensesResult;
   const purchases = purchasesResult.data as ReportPurchase[];
   const inventory = inventoryResult.data as ReportPurchase[];
   const saleItems = flattenSaleItems(sales);

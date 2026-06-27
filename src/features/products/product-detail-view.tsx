@@ -4,17 +4,11 @@ import { ArrowLeft, Boxes } from "lucide-react";
 import { EmptyState } from "@/components/ui/empty-state";
 import type { ProductDetail } from "@/features/products/queries";
 import { summarizeProductInventory } from "@/features/products/summary";
+import { formatMoney } from "@/lib/formatters/money";
 
 type ProductDetailViewProps = {
   product: ProductDetail;
 };
-
-function formatMoney(value: number | null) {
-  return new Intl.NumberFormat("en-PH", {
-    currency: "PHP",
-    style: "currency",
-  }).format(value ?? 0);
-}
 
 export function ProductDetailView({ product }: ProductDetailViewProps) {
   const summary = summarizeProductInventory(product.purchase_batches);

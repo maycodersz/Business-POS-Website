@@ -84,7 +84,10 @@ export async function createSaleAction(
     return { message: parsed.message };
   }
 
-  const { error } = await supabase.rpc("create_sale_from_batch", {
+  const hasLinkedExpense =
+    parsed.data.sale_expense_category !== null &&
+    parsed.data.sale_expense_amount !== null;
+  const rpcArgs = {
     p_purchase_batch_id: parsed.data.purchase_batch_id,
     p_quantity_sold: parsed.data.quantity_sold,
     p_selling_price: parsed.data.selling_price,
@@ -92,18 +95,43 @@ export async function createSaleAction(
     p_customer_name: parsed.data.customer_name,
     p_platform: parsed.data.platform,
     p_notes: parsed.data.notes,
-  });
+  };
+  const { data: saleId, error } = hasLinkedExpense
+    ? await supabase.rpc("create_sale_from_batch", {
+        ...rpcArgs,
+        p_expense_category: parsed.data.sale_expense_category,
+        p_expense_amount: parsed.data.sale_expense_amount,
+      })
+    : await supabase.rpc("create_sale_from_batch", rpcArgs);
 
   if (error) {
+    if (hasLinkedExpense && isMissingRpcError(error)) {
+      return {
+        message:
+          "Linked expenses need the latest database migration. Apply the migration, refresh, and try again.",
+      };
+    }
+
     return { message: friendlySupabaseError(error, "Sale could not be saved.") };
   }
 
-  revalidatePath("/sales");
-  revalidatePath("/inventory");
-  revalidatePath("/dashboard");
-  revalidatePath("/products");
+  if (saleId) {
+    revalidateSaleMutationPaths(saleId);
+  } else {
+    revalidatePath("/sales");
+    revalidatePath("/inventory");
+    revalidatePath("/dashboard");
+    revalidatePath("/reports");
+    revalidatePath("/products");
+  }
+  revalidatePath("/expenses");
 
-  return { ok: true, message: "Sale saved and inventory updated." };
+  return {
+    ok: true,
+    message: hasLinkedExpense
+      ? "Sale saved, inventory updated, and expense linked."
+      : "Sale saved and inventory updated.",
+  };
 }
 
 export async function updateSaleAction(
