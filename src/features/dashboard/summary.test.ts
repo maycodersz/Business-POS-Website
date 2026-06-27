@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   buildDailyDashboardSeries,
@@ -80,6 +80,10 @@ describe("summarizeDashboard", () => {
 });
 
 describe("normalizeDashboardRange", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
   it("defaults to 30 days and calculates an inclusive start date", () => {
     expect(normalizeDashboardRange(undefined, "2026-06-27")).toEqual({
       key: "30d",
@@ -91,6 +95,18 @@ describe("normalizeDashboardRange", () => {
 
   it("normalizes unsupported ranges back to 30 days", () => {
     expect(normalizeDashboardRange("bad", "2026-06-27").key).toBe("30d");
+  });
+
+  it("uses the Philippine current date when no reference date is passed", () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date("2026-06-27T16:30:00.000Z"));
+
+    expect(normalizeDashboardRange("1d")).toEqual({
+      key: "1d",
+      label: "Today",
+      startDate: "2026-06-28",
+      endDate: "2026-06-28",
+    });
   });
 
   it("supports a one-day dashboard and report range", () => {

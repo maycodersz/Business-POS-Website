@@ -1,4 +1,5 @@
 import { calculateNetProfit } from "@/lib/calculations/inventory";
+import { appDateInputValue } from "@/lib/dates/local-date";
 
 type ReportSaleItem = {
   revenue: number | null;
@@ -205,7 +206,7 @@ export function buildSupplierPriceHistoryReport(
 
 export function pickDeadStockReportRows<T extends DeadStockInput>(
   rows: T[],
-  referenceDate = dateToInputValue(new Date()),
+  referenceDate = appDateInputValue(),
 ): T[] {
   const deadStockBefore = subtractDays(referenceDate, 30);
 

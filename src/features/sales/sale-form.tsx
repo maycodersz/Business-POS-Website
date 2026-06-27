@@ -15,6 +15,7 @@ import {
   calculateNetProfit,
   calculateSaleRevenue,
 } from "@/lib/calculations/inventory";
+import { appDateInputValue } from "@/lib/dates/local-date";
 import { formatMoney } from "@/lib/formatters/money";
 import { ActionFeedback } from "@/components/ui/action-feedback";
 import { Input } from "@/components/ui/input";
@@ -30,10 +31,6 @@ const initialState: SaleActionState = {};
 
 const fieldClass =
   "h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-base text-slate-950 outline-none transition-colors focus:border-slate-400 focus:ring-2 focus:ring-slate-100 sm:h-10 sm:text-sm";
-
-function todayInputValue() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function batchLabel(batch: AvailableSaleBatch) {
   const variant = batch.product_variants?.variant_name ?? "No variant";
@@ -129,7 +126,7 @@ export function SaleForm({ batches, initialBatchId }: SaleFormProps) {
           Sale date
         </label>
         <Input
-          defaultValue={todayInputValue()}
+          defaultValue={appDateInputValue()}
           name="sale_date"
           required
           type="date"

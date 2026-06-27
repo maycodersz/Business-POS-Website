@@ -1,4 +1,5 @@
 import { calculateNetProfit } from "@/lib/calculations/inventory";
+import { appDateInputValue } from "@/lib/dates/local-date";
 
 type SaleItemSummary = {
   revenue: number | null;
@@ -126,7 +127,7 @@ function isDashboardRangeKey(value: unknown): value is DashboardRangeKey {
 
 export function normalizeDashboardRange(
   value: unknown,
-  referenceDate = dateToInputValue(new Date()),
+  referenceDate = appDateInputValue(),
 ): DashboardRange {
   const key = isDashboardRangeKey(value) ? value : "30d";
   const option = rangeOptions[key];
@@ -144,7 +145,7 @@ export function summarizeDashboard({
   saleItems,
   expenses,
   batches,
-  referenceDate = dateToInputValue(new Date()),
+  referenceDate = appDateInputValue(),
 }: DashboardSummaryInput): DashboardSummary {
   const totalRevenue = sumNumbers(
     saleItems.map((item) => item.revenue ?? 0),
@@ -183,7 +184,7 @@ export function summarizeDashboard({
 
 export function pickInventoryAlerts<T extends BatchSummary>(
   batches: T[],
-  referenceDate = dateToInputValue(new Date()),
+  referenceDate = appDateInputValue(),
 ) {
   const deadStockBefore = subtractDays(referenceDate, 30);
 

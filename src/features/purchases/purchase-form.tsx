@@ -15,6 +15,7 @@ import {
   calculateLandedUnitCost,
   calculateTotalItemCost,
 } from "@/lib/calculations/inventory";
+import { appDateInputValue } from "@/lib/dates/local-date";
 import { formatMoney } from "@/lib/formatters/money";
 import { LinkedPurchaseExpensesInput } from "@/features/purchases/linked-purchase-expenses-input";
 import { ActionFeedback } from "@/components/ui/action-feedback";
@@ -31,10 +32,6 @@ const initialState: PurchaseActionState = {};
 
 const fieldClass =
   "h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-base text-slate-950 outline-none transition-colors focus:border-slate-400 focus:ring-2 focus:ring-slate-100 sm:h-10 sm:text-sm";
-
-function todayInputValue() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 export function PurchaseForm({ products, suppliers }: PurchaseFormProps) {
   const [state, formAction] = useActionState(
@@ -179,7 +176,7 @@ export function PurchaseForm({ products, suppliers }: PurchaseFormProps) {
           Purchase date
         </label>
         <Input
-          defaultValue={todayInputValue()}
+          defaultValue={appDateInputValue()}
           name="purchase_date"
           required
           type="date"

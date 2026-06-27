@@ -4,6 +4,7 @@ import {
   type ReportExportType,
 } from "@/features/reports/csv";
 import type { getReportsData } from "@/features/reports/queries";
+import { appDateInputValue } from "@/lib/dates/local-date";
 
 type ReportsData = Awaited<ReturnType<typeof getReportsData>>;
 
@@ -165,7 +166,7 @@ export function buildReportPdf(type: ReportExportType, reports: ReportsData) {
   const lines = [
     reportExportLabels[type],
     `Range: ${reports.range.label}`,
-    `Generated: ${new Date().toISOString().slice(0, 10)}`,
+    `Generated: ${appDateInputValue()}`,
     "",
   ];
 

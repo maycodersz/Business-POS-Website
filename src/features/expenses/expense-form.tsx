@@ -9,6 +9,7 @@ import {
 } from "@/features/expenses/actions";
 import type { ExpenseSaleOption } from "@/features/expenses/queries";
 import { expenseCategories } from "@/features/expenses/validation";
+import { appDateInputValue } from "@/lib/dates/local-date";
 import { ActionFeedback } from "@/components/ui/action-feedback";
 import { Input } from "@/components/ui/input";
 import { SubmitButton } from "@/components/ui/submit-button";
@@ -21,10 +22,6 @@ const initialState: ExpenseActionState = {};
 
 const fieldClass =
   "h-11 w-full rounded-md border border-slate-200 bg-white px-3 text-base text-slate-950 outline-none transition-colors focus:border-slate-400 focus:ring-2 focus:ring-slate-100 sm:h-10 sm:text-sm";
-
-function todayInputValue() {
-  return new Date().toISOString().slice(0, 10);
-}
 
 function saleLabel(sale: ExpenseSaleOption) {
   const item = sale.sale_items[0] ?? null;
@@ -49,7 +46,7 @@ export function ExpenseForm({ sales }: ExpenseFormProps) {
           Expense date
         </label>
         <Input
-          defaultValue={todayInputValue()}
+          defaultValue={appDateInputValue()}
           name="expense_date"
           required
           type="date"

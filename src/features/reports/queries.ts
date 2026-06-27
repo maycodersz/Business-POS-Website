@@ -9,6 +9,7 @@ import {
   summarizeProfitAndLossReport,
 } from "@/features/reports/summary";
 import { getRequiredUser } from "@/lib/auth/require-user";
+import { appDateInputValue } from "@/lib/dates/local-date";
 
 export type ReportSale = {
   id: string;
@@ -87,10 +88,6 @@ type DateRangeQuery<T> = {
   lte(column: string, value: string): T;
 };
 
-function todayInputValue() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 function applyDateRange<T extends DateRangeQuery<T>>(
   query: T,
   column: string,
@@ -139,7 +136,7 @@ function inventoryValue(purchases: ReportPurchase[]) {
 }
 
 export async function getReportsData(rangeKey?: DashboardRangeKey | string) {
-  const range = normalizeDashboardRange(rangeKey, todayInputValue());
+  const range = normalizeDashboardRange(rangeKey, appDateInputValue());
   const { supabase, user } = await getRequiredUser();
 
   async function attachPurchaseSummaries(

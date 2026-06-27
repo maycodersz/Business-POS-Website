@@ -7,6 +7,7 @@ import {
   type DashboardRangeKey,
 } from "@/features/dashboard/summary";
 import { getRequiredUser } from "@/lib/auth/require-user";
+import { appDateInputValue } from "@/lib/dates/local-date";
 
 type DashboardSale = {
   id: string;
@@ -58,10 +59,6 @@ type DashboardPurchase = {
 
 export type DashboardInventoryAlert = DashboardPurchase;
 
-function todayInputValue() {
-  return new Date().toISOString().slice(0, 10);
-}
-
 type DateRangeQuery<T> = {
   gte(column: string, value: string): T;
   lte(column: string, value: string): T;
@@ -89,7 +86,7 @@ function flattenSaleItems(sales: DashboardSale[]) {
 }
 
 export async function getDashboardData(rangeKey?: DashboardRangeKey | string) {
-  const range = normalizeDashboardRange(rangeKey, todayInputValue());
+  const range = normalizeDashboardRange(rangeKey, appDateInputValue());
   const { supabase, user } = await getRequiredUser();
 
   const salesBaseQuery = supabase
