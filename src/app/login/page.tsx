@@ -25,7 +25,7 @@ export default async function LoginPage() {
     <main className="flex min-h-screen bg-slate-50">
       <section className="hidden flex-1 border-r border-slate-200 bg-slate-950 px-10 py-12 text-white lg:flex lg:flex-col lg:justify-between">
         <div>
-          <p className="text-lg font-semibold">ResellOps</p>
+          <p className="text-lg font-semibold">Cigarette POS</p>
           <h1 className="mt-10 max-w-xl text-4xl font-semibold leading-tight">
             Track every purchase, sale, expense, and peso of profit.
           </h1>
@@ -42,7 +42,7 @@ export default async function LoginPage() {
         <div className="w-full max-w-sm rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
           <p className="text-sm font-medium text-emerald-700">Private workspace</p>
           <h2 className="mt-2 text-2xl font-semibold text-slate-950">
-            Sign in to ResellOps
+            Sign in to Cigarette POS
           </h2>
           <p className="mt-2 text-sm leading-6 text-slate-500">
             Public registration is intentionally omitted for this personal admin

@@ -13,7 +13,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "ResellOps",
+  title: "Cigarette POS",
   description:
     "Personal dropshipping inventory, sales, expenses, and profit tracker.",
 };
