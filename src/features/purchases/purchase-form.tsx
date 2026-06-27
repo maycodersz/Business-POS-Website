@@ -130,7 +130,7 @@ export function PurchaseForm({ products, suppliers }: PurchaseFormProps) {
         </label>
         <Input
           name="new_variant_name"
-          placeholder="Black, Large, 128GB"
+          placeholder="Black, Red, Blue, etc."
         />
       </div>
 

@@ -20,7 +20,7 @@ export function AppShell({ children, userEmail }: AppShellProps) {
       <AppPrefetcher />
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-slate-200 bg-white px-4 py-5 md:flex md:flex-col">
         <div>
-          <p className="text-lg font-semibold tracking-tight">ResellOps</p>
+          <p className="text-lg font-semibold tracking-tight">Cigarette POS</p>
           <p className="mt-1 text-xs text-slate-500">Personal operations tracker</p>
         </div>
         <SidebarNav />
@@ -37,10 +37,10 @@ export function AppShell({ children, userEmail }: AppShellProps) {
           <div className="flex h-16 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
             <div className="min-w-0">
               <p className="text-sm font-semibold text-slate-950 md:hidden">
-                ResellOps
+                Cigarette POS
               </p>
               <p className="truncate text-xs text-slate-500">
-                {userEmail ?? "Authenticated workspace"}
+                Authenticated workspace
               </p>
             </div>
             <AddItemButton />

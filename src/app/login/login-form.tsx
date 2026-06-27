@@ -34,6 +34,7 @@ export function LoginForm() {
             name="email"
             type="email"
             autoComplete="email"
+            placeholder="Enter your email"
             className="pl-9"
             required
           />
@@ -56,6 +57,7 @@ export function LoginForm() {
             name="password"
             type="password"
             autoComplete="current-password"
+            placeholder="Enter your password"
             className="pl-9"
             required
           />

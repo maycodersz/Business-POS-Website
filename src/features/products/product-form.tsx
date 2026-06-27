@@ -53,7 +53,7 @@ export function ProductForm({ product }: { product?: Product }) {
         </label>
         <Input
           name="name"
-          placeholder="Wireless Mouse"
+          placeholder="RGD, Carnival, etc."
           required
           defaultValue={product?.name}
         />
@@ -74,7 +74,7 @@ export function ProductForm({ product }: { product?: Product }) {
             Add variant
           </label>
           <Input
-            placeholder="Black, Large, 128GB"
+            placeholder="Black, Red, Blue, etc."
             value={initialVariantName}
             onChange={(event) => setInitialVariantName(event.target.value)}
             onKeyDown={(event) => {
